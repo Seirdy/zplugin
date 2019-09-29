@@ -264,11 +264,17 @@ builtin source ${ZPLGM[BIN_DIR]}"/zplugin-side.zsh"
 # Downloads file to stdout. Supports following backend commands:
 # curl, wget, lftp, lynx. Used by snippet loading.
 -zplg-download-file-stdout() {
-    local url="$1"
-    local restart="$2"
+    local url="$1" restart="$2"
 
-    if [[ "$restart" = "1" ]]; then
-        path+=( "/usr/local/bin" )
+    setopt localoptions localtraps
+
+    if (( restart )); then
+        (( ${path[(I)/usr/local/bin]} )) || \
+            { 
+                path+=( "/usr/local/bin" );
+                trap "path[-1]=()" EXIT
+            }
+    
         if (( ${+commands[curl]} )) then
             command curl -fsSL "$url" || return 1
         elif (( ${+commands[wget]} )); then
@@ -278,10 +284,8 @@ builtin source ${ZPLGM[BIN_DIR]}"/zplugin-side.zsh"
         elif (( ${+commands[lynx]} )) then
             command lynx -source "$url" || return 1
         else
-            [[ "${(t)path}" != *unique* ]] && path[-1]=()
             return 2
         fi
-        [[ "${(t)path}" != *unique* ]] && path[-1]=()
     else
         if type curl 2>/dev/null 1>&2; then
             command curl -fsSL "$url" || return 1
@@ -446,7 +450,7 @@ builtin source ${ZPLGM[BIN_DIR]}"/zplugin-side.zsh"
     [[ "$url" = *github.com* && ! "$url" = */raw/* && "${+ZPLG_ICE[svn]}" = "0" ]] && url="${url/\/blob\///raw/}"
 
     if [[ ! -d "$local_dir/$dirname" ]]; then
-        [[ "$update" != "-u" ]] && print "${ZPLGM[col-info]}Setting up snippet ${ZPLGM[col-p]}${(l:10:: :)}$sname${ZPLGM[col-rst]}${ZPLG_ICE[id-as]:+... (as $id_as)}"
+        [[ "$update" != "-u" ]] && print "\n${ZPLGM[col-info]}Setting up snippet ${ZPLGM[col-p]}${(l:10:: :)}$sname${ZPLGM[col-rst]}${ZPLG_ICE[id-as]:+... (as $id_as)}"
         command mkdir -p "$local_dir"
     fi
 
